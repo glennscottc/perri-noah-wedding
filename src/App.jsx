@@ -572,7 +572,12 @@ export default function App() {
   }
 
   function handleSignOut() {
+    // Clear localStorage so the app doesn't auto-login next time
+    localStorage.removeItem('pn-viewer')
+    localStorage.removeItem('pn-read-ts')
+    localStorage.removeItem('pn-session-valid')
     setViewerState(null)
+    setLoadError(false)
     setNotes([])
     setReminders([])
     setGifts([])
@@ -643,7 +648,13 @@ export default function App() {
           </button>
         )}
         <button
-             onClick={() => { localStorage.removeItem('pn-viewer'); localStorage.removeItem('pn-session-valid'); window.location.reload() }}
+          onClick={() => {
+            // Force clear everything including localStorage then reload
+            localStorage.removeItem('pn-viewer')
+            localStorage.removeItem('pn-read-ts')
+            localStorage.removeItem('pn-session-valid')
+            window.location.reload()
+          }}
           style={{ marginTop: 14, padding: '8px 20px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', background: 'white', color: '#78716C', fontSize: 13, cursor: 'pointer' }}
         >
           Sign out
@@ -1654,7 +1665,7 @@ function SearchOverlay({ isParents, viewer, vendors, guests, tasks, dates, media
           {query && (
             <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, padding: 0 }}>×</button>
           )}
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, padding: '4px 8px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
+          <button onClick={onClose} style={{ background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, padding: '4px 8px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
             Cancel
           </button>
         </div>
