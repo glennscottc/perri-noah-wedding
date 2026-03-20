@@ -354,6 +354,7 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('pn-read-ts') || '{}') } catch { return {} }
   })
 
+     const [unreadCounts, setUnreadCounts] = useState({})
   const isParents = PARENTS.includes(viewer)
 
   // Data is loaded by handleLogin() after PIN verification
