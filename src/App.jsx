@@ -643,7 +643,7 @@ export default function App() {
           </button>
         )}
         <button
-          onClick={handleSignOut}
+             onClick={() => { localStorage.removeItem('pn-viewer'); localStorage.removeItem('pn-session-valid'); window.location.reload() }}
           style={{ marginTop: 14, padding: '8px 20px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', background: 'white', color: '#78716C', fontSize: 13, cursor: 'pointer' }}
         >
           Sign out
