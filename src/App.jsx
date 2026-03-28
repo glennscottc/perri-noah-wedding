@@ -2756,8 +2756,14 @@ function ContactCard({ name, cat, contactName, phone, email, address, notes, sta
         )}
 
         {notes && (
-          <div style={{ padding: '8px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            📌 {notes}
+          <div style={{ padding: '12px 14px', background: 'var(--gold-light)', borderRadius: 10, border: '1px solid #D4B483' }}>
+            <div style={{ fontSize: 11, color: 'var(--gold-dark)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>📋 Notes & Contract</div>
+            {notes.split(/\s+/).map((word, i) => {
+              if (word.startsWith('http')) {
+                return <span key={i}><a href={word} target="_blank" rel="noreferrer" style={{ color: '#0C447C', fontWeight: 600, fontSize: 13, wordBreak: 'break-all' }}>📄 View contract ↗</a>{' '}</span>
+              }
+              return <span key={i} style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>{word} </span>
+            })}
           </div>
         )}
 
@@ -2915,7 +2921,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
               </select>
             </FormField>
             <FormField label="Address" full><input value={form.address} onChange={e => setForm(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, White Plains, NY" /></FormField>
-            <FormField label="Notes" full><input value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. Ask about Sunday availability" /></FormField>
+            <FormField label="Notes" full><textarea value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="Key terms, payment dates, contract link..." rows={4} style={{ resize: 'vertical' }} /></FormField>
           </div>
           <button style={S.saveBtn} onClick={save}>{editId ? 'Update vendor ✓' : 'Save vendor ✓'}</button>
           <button style={S.cancelBtn} onClick={() => { setShowForm(false); setEditId(null) }}>Cancel</button>
