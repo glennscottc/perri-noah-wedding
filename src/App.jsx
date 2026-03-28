@@ -403,10 +403,7 @@ export default function App() {
         setTransactions([])
       }
 
-      if (vRes.data) {
-        const withCore = await ensureCoreVendors(vRes.data, db)
-        setVendors(withCore)
-      }
+      if (vRes.data) setVendors(vRes.data)
       if (gRes.data) setGuests(gRes.data)
       if (dRes.data) setDates(dRes.data)
       if (mRes.data) setMediaItems(mRes.data)
@@ -576,7 +573,12 @@ export default function App() {
   }
 
   function handleSignOut() {
+    // Clear localStorage so the app doesn't auto-login next time
+    localStorage.removeItem('pn-viewer')
+    localStorage.removeItem('pn-read-ts')
+    localStorage.removeItem('pn-session-valid')
     setViewerState(null)
+    setLoadError(false)
     setNotes([])
     setReminders([])
     setGifts([])
@@ -647,7 +649,13 @@ export default function App() {
           </button>
         )}
         <button
-          onClick={handleSignOut}
+          onClick={() => {
+            // Force clear everything including localStorage then reload
+            localStorage.removeItem('pn-viewer')
+            localStorage.removeItem('pn-read-ts')
+            localStorage.removeItem('pn-session-valid')
+            window.location.reload()
+          }}
           style={{ marginTop: 14, padding: '8px 20px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', background: 'white', color: '#78716C', fontSize: 13, cursor: 'pointer' }}
         >
           Sign out
@@ -1658,7 +1666,7 @@ function SearchOverlay({ isParents, viewer, vendors, guests, tasks, dates, media
           {query && (
             <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, padding: 0 }}>×</button>
           )}
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, padding: '4px 8px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
+          <button onClick={onClose} style={{ background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, padding: '4px 8px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
             Cancel
           </button>
         </div>
@@ -2680,20 +2688,7 @@ function NotesTab({ viewer, notes, setNotes, reminders, setReminders, logActivit
 }
 
 // ── CONTACT CARD ──────────────────────────────────────
-function ContactCard({ vendor, name, cat, contactName, phone, email, address, notes, status, isParents, onSave }) {
-  const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ contact_name: contactName || '', phone: phone || '', email: email || '', address: address || '', notes: notes || '' })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  async function handleSave() {
-    if (!onSave || !vendor) return
-    setSaving(true)
-    await onSave(vendor.id, form)
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => { setSaved(false); setEditing(false) }, 1200)
-  }
+function ContactCard({ name, cat, contactName, phone, email, address, notes, status, isParents }) {
   const catColors = {
     'Venue': ['#E6F1FB','#0C447C'], 'Florals': ['#EAF3DE','#27500A'],
     'Photography': ['#EEEDFE','#3C3489'], 'Music': ['#FAEEDA','#633806'],
@@ -2706,81 +2701,76 @@ function ContactCard({ vendor, name, cat, contactName, phone, email, address, no
     <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: '1rem 1.25rem', marginBottom: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)', transition: 'box-shadow 0.2s' }}>
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
-        <div style={{ flex: 1 }}>
+        <div>
           <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{name}</div>
-          {editing
-            ? <input value={form.contact_name} onChange={e => setForm(p=>({...p,contact_name:e.target.value}))} placeholder="Contact name" style={{ fontSize: 12, marginTop: 4, width: '100%' }} />
-            : (form.contact_name || contactName) && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{form.contact_name || contactName}</div>
-          }
+          {contactName && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{contactName}</div>}
         </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {cat && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: cbg, color: ctc, fontWeight: 500 }}>{cat}</span>}
           {isParents && status && <span style={S.badge2(status)}>{status === 'paid' ? 'Paid in full' : status === 'deposit' ? 'Deposit paid' : status}</span>}
-          {onSave && <button onClick={() => { setEditing(!editing); setForm({ contact_name: contactName||'', phone: phone||'', email: email||'', address: address||'', notes: notes||'' }) }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', background: editing ? 'var(--rose-light)' : 'white', color: editing ? 'var(--rose-dark)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>{editing ? 'Cancel' : '✏️ Edit'}</button>}
         </div>
       </div>
 
       {/* Contact details */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {editing ? (
-          <>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>📞</span>
-              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Phone</div><input value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="e.g. 914-555-1234" type="tel" style={{ fontSize:14, width:'100%' }} /></div>
+        {phone && (
+          <a href={`tel:${phone.replace(/\D/g,'')}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#EEEDFE'}
+            onMouseLeave={e => e.currentTarget.style.background = 'white'}
+          >
+            <span style={{ fontSize: 18, flexShrink: 0 }}>📞</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 1 }}>Phone</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: '#0C447C' }}>{phone}</div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>✉️</span>
-              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Email</div><input value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="e.g. vendor@example.com" type="email" style={{ fontSize:14, width:'100%' }} /></div>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Tap to call</span>
+          </a>
+        )}
+
+        {email && (
+          <a href={`mailto:${email}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#EEEDFE'}
+            onMouseLeave={e => e.currentTarget.style.background = 'white'}
+          >
+            <span style={{ fontSize: 18, flexShrink: 0 }}>✉️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 1 }}>Email</div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: '#0C447C' }}>{email}</div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>📍</span>
-              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Address</div><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, New York, NY" style={{ fontSize:13, width:'100%' }} /></div>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Tap to email</span>
+          </a>
+        )}
+
+        {address && (
+          <a href={`https://maps.google.com/?q=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#EEEDFE'}
+            onMouseLeave={e => e.currentTarget.style.background = 'white'}
+          >
+            <span style={{ fontSize: 18, flexShrink: 0 }}>📍</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 1 }}>Address</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{address}</div>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
-              <span style={{ fontSize:18, flexShrink:0 }}>📌</span>
-              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Notes</div><input value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. Ask about parking" style={{ fontSize:13, width:'100%' }} /></div>
-            </div>
-            <button onClick={handleSave} disabled={saving||saved} style={{ width:'100%', padding:'11px', borderRadius:10, border:'none', background: saved ? '#1D9E75' : 'var(--rose)', color:'white', fontSize:14, fontWeight:700, cursor:'pointer', marginTop:4, transition:'background 0.2s' }}>
-              {saved ? '✓ Saved!' : saving ? 'Saving…' : 'Save changes'}
-            </button>
-          </>
-        ) : (
-          <>
-            {(form.phone || phone) && (
-              <a href={`tel:${(form.phone||phone).replace(/\D/g,'')}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', padding:'10px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', transition:'background 0.15s' }}
-                onMouseEnter={e=>e.currentTarget.style.background='#EEEDFE'} onMouseLeave={e=>e.currentTarget.style.background='white'}>
-                <span style={{ fontSize:18, flexShrink:0 }}>📞</span>
-                <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:1 }}>Phone</div><div style={{ fontSize:14, fontWeight:500, color:'#0C447C' }}>{form.phone||phone}</div></div>
-                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Tap to call</span>
-              </a>
-            )}
-            {(form.email || email) && (
-              <a href={`mailto:${form.email||email}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', padding:'10px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', transition:'background 0.15s' }}
-                onMouseEnter={e=>e.currentTarget.style.background='#EEEDFE'} onMouseLeave={e=>e.currentTarget.style.background='white'}>
-                <span style={{ fontSize:18, flexShrink:0 }}>✉️</span>
-                <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:1 }}>Email</div><div style={{ fontSize:14, fontWeight:500, color:'#0C447C' }}>{form.email||email}</div></div>
-                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Tap to email</span>
-              </a>
-            )}
-            {(form.address || address) && (
-              <a href={`https://maps.google.com/?q=${encodeURIComponent(form.address||address)}`} target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', padding:'10px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', transition:'background 0.15s' }}
-                onMouseEnter={e=>e.currentTarget.style.background='#EEEDFE'} onMouseLeave={e=>e.currentTarget.style.background='white'}>
-                <span style={{ fontSize:18, flexShrink:0 }}>📍</span>
-                <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:1 }}>Address</div><div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)' }}>{form.address||address}</div></div>
-                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Maps ↗</span>
-              </a>
-            )}
-            {(form.notes || notes) && (
-              <div style={{ padding:'8px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', fontSize:12, color:'var(--text-secondary)', lineHeight:1.5 }}>
-                📌 {form.notes||notes}
-              </div>
-            )}
-            {!phone && !email && !address && !form.phone && !form.email && !form.address && (
-              <div style={{ fontSize:12, color:'var(--text-secondary)', fontStyle:'italic', padding:'4px 0' }}>
-                No contact details yet — tap ✏️ Edit to add phone, email and address.
-              </div>
-            )}
-          </>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Maps ↗</span>
+          </a>
+        )}
+
+        {notes && (
+          <div style={{ padding: '12px 14px', background: 'var(--gold-light)', borderRadius: 10, border: '1px solid #D4B483' }}>
+            <div style={{ fontSize: 11, color: 'var(--gold-dark)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>📋 Notes & Contract</div>
+            {notes.split(/\s+/).map((word, i) => {
+              if (word.startsWith('http')) {
+                return <span key={i}><a href={word} target="_blank" rel="noreferrer" style={{ color: '#0C447C', fontWeight: 600, fontSize: 13, wordBreak: 'break-all' }}>📄 View contract ↗</a>{' '}</span>
+              }
+              return <span key={i} style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>{word} </span>
+            })}
+          </div>
+        )}
+
+        {!phone && !email && !address && (
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '4px 0' }}>
+            No contact details yet — edit this vendor to add phone, email and address.
+          </div>
         )}
       </div>
     </div>
@@ -2794,6 +2784,24 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' })
 
+  async function save() {
+    if (!form.name) return
+    setSyncStatus('saving')
+    if (editId) {
+      // Update existing
+      const { data } = await supabase.from('vendors').update(form).eq('id', editId).select()
+      if (data) { setVendors(prev => prev.map(v => v.id === editId ? data[0] : v)); setShowForm(false); setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
+      await logActivity('🏪', viewer, 'updated vendor: ' + form.name, 'vendors')
+    } else {
+      // Insert new
+      const item = { id: uid(), ...form, created_by: viewer }
+      const { data } = await supabase.from('vendors').insert([item]).select()
+      if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
+      await logActivity('🏪', viewer, 'added vendor: ' + form.name, 'vendors')
+    }
+    setSyncStatus('saved')
+  }
+
   async function deleteVendor(v) {
     if (!window.confirm(`Delete ${v.name}?`)) return
     await supabase.from('vendors').delete().eq('id', v.id)
@@ -2805,26 +2813,8 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
   function startEdit(v) {
     setEditId(v.id)
     setForm({ name: v.name || '', cat: v.cat || '', status: v.status || 'pending', contact_name: v.contact_name || '', phone: v.phone || '', email: v.email || '', address: v.address || '', notes: v.notes || '' })
-    setViewMode('list')
     setShowForm(true)
-    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
-  }
-
-  async function save() {
-    if (!form.name) return
-    setSyncStatus('saving')
-    if (editId) {
-      const { data } = await supabase.from('vendors').update(form).eq('id', editId).select()
-      if (data) { setVendors(prev => prev.map(v => v.id === editId ? data[0] : v)); setShowForm(false); setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
-      await logActivity('🏪', viewer, 'updated vendor: ' + form.name, 'vendors')
-      setSyncStatus('saved')
-      return
-    }
-    const item = { id: uid(), ...form, created_by: viewer }
-    const { data } = await supabase.from('vendors').insert([item]).select()
-    if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
-    await logActivity('🏪', viewer, 'added vendor: ' + form.name, 'vendors')
-    setSyncStatus('saved')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const all = [{ id: 'oo', status: 'deposit' }, ...vendors]
@@ -2866,102 +2856,6 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
         ))}
       </div>
 
-      {/* ── HANK LANE / DANE WRIGHT BAND CARD ── */}
-      <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', marginBottom: '1.5rem', border: '0.5px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 500 }}>Dane Wright Band <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>· Hank Lane Music</span></div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Contract #318090</div>
-          </div>
-          {isParents && <span style={S.badge2('deposit')}>Deposit paid</span>}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, marginBottom: 12 }}>
-          {[['Category','Bands & Music'],['Directing','Dane Wright'],['Contact','Lori Roth'],['Phone','516-626-9400'],['Email','joanna@hanklane.com']].map(([l,v]) => (
-            <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
-          ))}
-          <div style={{ gridColumn: '1/-1' }}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>Address</div><div style={{ fontWeight: 500 }}>200 Frank Road, Hicksville, NY 11801</div></div>
-        </div>
-        {isParents && (
-          <>
-            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contract & Pricing</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
-                {[['Total contract','$32,500'],['Overtime rate','$3,850 / half hour'],['Band size','10 musicians'],['Reception','4 hours'],['Ceremony & cocktails','2 hrs keyboard']].map(([l,v]) => (
-                  <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
-                ))}
-              </div>
-            </div>
-            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Schedule</div>
-              {[
-                { label: 'Deposit — $10,000', date: 'Mar 27, 2026', note: 'Non-refundable · Paid by Cochin family', done: true },
-                { label: '75% balance due (~$14,375)', date: 'Jun 16, 2027', note: 'Due 4 months before wedding', done: false },
-                { label: 'Full payment due', date: 'Sep 16, 2027', note: 'Due 30 days before wedding', done: false },
-                { label: 'Final music requests due', date: 'Sep 18, 2027', note: 'Submit final song list by this date', done: false },
-              ].map((p, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: p.done ? '#1D9E75' : 'var(--border-strong)', color: p.done ? 'white' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 2 }}>{p.done ? '✓' : ''}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: p.done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: p.done ? 'line-through' : 'none' }}>{p.label}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{p.date} · {p.note}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <a href="https://drive.google.com/file/d/1HxM-4-MMJeHc9b5WgM7Pf3xVlokSrKdq/view?usp=sharing" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'var(--gold-light)', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-              📄 View signed contract ↗
-            </a>
-          </>
-        )}
-      </div>
-
-      {/* ── INSYNC STUDIOS CARD ── */}
-      <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', marginBottom: '1.5rem', border: '0.5px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 500 }}>INSYNC Studios</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>The INSYNC Signature Collection (W)</div>
-          </div>
-          {isParents && <span style={S.badge2('pending')}>Deposit pending</span>}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, marginBottom: 12 }}>
-          {[['Category','Photography'],['Package','Signature Collection (W)']].map(([l,v]) => (
-            <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
-          ))}
-        </div>
-        {isParents && (
-          <>
-            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contract & Pricing</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
-                {[['Total contract','$10,887.00'],['Payment','25% / 50% / Balance']].map(([l,v]) => (
-                  <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
-                ))}
-              </div>
-            </div>
-            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Schedule</div>
-              {[
-                { label: 'Deposit — $2,721.75 (25%)', date: 'Due now', note: 'Paid by Bleustein family', done: false },
-                { label: '50% payment — $4,082.62', date: 'Apr 16, 2027', note: 'Due 6 months before wedding', done: false },
-                { label: 'Balance — $4,082.63', date: 'Oct 9, 2027', note: 'Due 7 days before wedding', done: false },
-              ].map((p, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: i < 2 ? '0.5px solid var(--border)' : 'none' }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: p.done ? '#1D9E75' : 'var(--border-strong)', color: p.done ? 'white' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 2 }}>{p.done ? '✓' : ''}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: p.done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: p.done ? 'line-through' : 'none' }}>{p.label}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{p.date} · {p.note}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <a href="https://insyncnyphotography.vsco.page/quote/customize/a3dd0d4d22c1af54bd49c354/3ef09ec6c44a56050a06515b?QuoteID=01kkfvggk5qxejr10rr5z5jfba" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'var(--gold-light)', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-              📄 View quote & contract ↗
-            </a>
-          </>
-        )}
-      </div>
-
       {/* View toggle — List or Contact Sheet */}
       <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: 20, padding: 3, gap: 2, marginBottom: '1.25rem', width: 'fit-content' }}>
         {[['list','📋 Vendors'],['contacts','📞 Contact Sheet']].map(([v, label]) => (
@@ -2973,21 +2867,26 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
       {viewMode === 'contacts' && (
         <div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Quick-dial every vendor. Tap ✏️ Edit on any card to update their details.
+            Quick-dial every vendor. Tap a phone number to call, email to open mail.
           </div>
+
+          {/* Old Oaks — always first */}
+          <ContactCard
+            name="Old Oaks Country Club"
+            cat="Venue"
+            contactName="Iwona Sterk, GM"
+            phone="914-683-6000"
+            email="iwona.sterk@oldoaks.com"
+            address="3100 Purchase St., Purchase, NY 10577"
+            status="deposit"
+            isParents={isParents}
+          />
+
           {vendors.length === 0
-            ? <div style={S.empty}>No vendors yet.</div>
-            : [...vendors].sort((a,b) => {
-                const order = ['Old Oaks Country Club', 'Dane Wright Band (Hank Lane)', 'INSYNC Studios']
-                const ai = order.indexOf(a.name), bi = order.indexOf(b.name)
-                if (ai !== -1 && bi !== -1) return ai - bi
-                if (ai !== -1) return -1
-                if (bi !== -1) return 1
-                return (a.name||'').localeCompare(b.name||'')
-              }).map(v => (
+            ? <div style={S.empty}>No vendors added yet. Tap "+ Add vendor" above to start building your contact list.</div>
+            : vendors.map(v => (
                 <ContactCard
                   key={v.id}
-                  vendor={v}
                   name={v.name}
                   cat={v.cat}
                   contactName={v.contact_name}
@@ -2997,11 +2896,6 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                   notes={v.notes}
                   status={v.status}
                   isParents={isParents}
-                  onSave={async (id, form) => {
-                    await supabase.from('vendors').update(form).eq('id', id)
-                    setVendors(prev => prev.map(x => x.id === id ? { ...x, ...form } : x))
-                    setSyncStatus('saved')
-                  }}
                 />
               ))
           }
@@ -3027,16 +2921,16 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
               </select>
             </FormField>
             <FormField label="Address" full><input value={form.address} onChange={e => setForm(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, White Plains, NY" /></FormField>
-            <FormField label="Notes" full><input value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. Ask about Sunday availability" /></FormField>
+            <FormField label="Notes" full><textarea value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="Key terms, payment dates, contract link..." rows={4} style={{ resize: 'vertical' }} /></FormField>
           </div>
-          <button style={S.saveBtn} onClick={save}>Save vendor</button>
-          <button style={S.cancelBtn} onClick={() => setShowForm(false)}>Cancel</button>
+          <button style={S.saveBtn} onClick={save}>{editId ? 'Update vendor ✓' : 'Save vendor ✓'}</button>
+          <button style={S.cancelBtn} onClick={() => { setShowForm(false); setEditId(null) }}>Cancel</button>
         </div>
       )}
 
       {vendors.length === 0 ? <div style={S.empty}>No vendors yet. Tap "+ Add vendor" to add your first one.</div> : (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr>{['Vendor','Category','Contact',...(isParents?['Status']:[]),''].map(h => <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{['Vendor','Category','Contact',...(isParents?['Status']:[])].map(h => <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)' }}>{h}</th>)}</tr></thead>
           <tbody>{vendors.map(v => (
             <tr key={v.id}>
               <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)' }}>{v.name}</td>
