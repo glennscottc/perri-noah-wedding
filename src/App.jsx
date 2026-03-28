@@ -1772,6 +1772,7 @@ function OverviewTab({ isParents, balance, totalPaidOut, transactions, confirmed
           { vendor: 'Old Oaks Country Club', label: 'Final guest count due', date: '2027-10-11', note: '5 days before wedding — required by contract' },
           { vendor: 'Old Oaks Country Club', label: 'Outside vendors submit proof of insurance', date: '2027-10-02', note: '7 days before event — contact GM' },
           // Hank Lane
+          { vendor: 'Dane Wright Band', label: 'Deposit — $10,000', date: null, note: 'Due now · Cochin family', overdue: true },
           { vendor: 'Dane Wright Band', label: '75% balance due (~$14,375)', date: '2027-06-16', note: '4 months before wedding · Cochin family' },
           { vendor: 'Dane Wright Band', label: 'Full payment due', date: '2027-09-16', note: '30 days before wedding · Cochin family' },
           { vendor: 'Dane Wright Band', label: 'Final music requests due', date: '2027-09-18', note: 'Submit final song list' },
@@ -2879,7 +2880,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             <div style={{ fontSize: 15, fontWeight: 500 }}>Dane Wright Band <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>· Hank Lane Music</span></div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Contract #318090</div>
           </div>
-          {isParents && <span style={S.badge2('deposit')}>Deposit paid</span>}
+          {isParents && <span style={S.badge2('pending')}>Deposit pending</span>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, marginBottom: 12 }}>
           {[['Category','Bands & Music'],['Directing','Dane Wright'],['Contact','Lori Roth'],['Phone','516-626-9400'],['Email','joanna@hanklane.com']].map(([l,v]) => (
@@ -2900,7 +2901,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Schedule</div>
               {[
-                { label: 'Deposit — $10,000', date: 'Mar 27, 2026', note: 'Non-refundable · Paid by Cochin family', done: true },
+                { label: 'Deposit — $10,000', date: 'Mar 27, 2026', note: 'Non-refundable · Cochin family', done: false },
                 { label: '75% balance due (~$14,375)', date: 'Jun 16, 2027', note: 'Due 4 months before wedding', done: false },
                 { label: 'Full payment due', date: 'Sep 16, 2027', note: 'Due 30 days before wedding', done: false },
                 { label: 'Final music requests due', date: 'Sep 18, 2027', note: 'Submit final song list by this date', done: false },
