@@ -2764,6 +2764,7 @@ function ContactCard({ name, cat, contactName, phone, email, address, notes, sta
 function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSyncStatus }) {
   const [viewMode, setViewMode] = useState('list') // 'list' | 'contacts'
   const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' })
 
   async function deleteVendor(v) {
@@ -2784,6 +2785,13 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
   async function save() {
     if (!form.name) return
     setSyncStatus('saving')
+    if (editId) {
+      const { data } = await supabase.from('vendors').update(form).eq('id', editId).select()
+      if (data) { setVendors(prev => prev.map(v => v.id === editId ? data[0] : v)); setShowForm(false); setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
+      await logActivity('🏪', viewer, 'updated vendor: ' + form.name, 'vendors')
+      setSyncStatus('saved')
+      return
+    }
     const item = { id: uid(), ...form, created_by: viewer }
     const { data } = await supabase.from('vendors').insert([item]).select()
     if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
@@ -2975,10 +2983,10 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
       {/* ── LIST VIEW ── */}
       {viewMode === 'list' && (<>
 
-      <button style={S.addBtn} onClick={() => setShowForm(!showForm)}>+ Add vendor</button>
+      <button style={S.addBtn} onClick={() => { setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }); setShowForm(!showForm) }}>+ Add vendor</button>
       {showForm && (
         <div style={S.formBox}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Vendor details</div>
+          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{editId ? 'Edit vendor' : 'Vendor details'}</div>
           <div style={S.formGrid}>
             <FormField label="Vendor name"><input value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Rosewood Florist" /></FormField>
             <FormField label="Category"><input value={form.cat} onChange={e => setForm(p=>({...p,cat:e.target.value}))} placeholder="e.g. Florals" /></FormField>
