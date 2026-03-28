@@ -2766,6 +2766,21 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' })
 
+  async function deleteVendor(v) {
+    if (!window.confirm(`Delete ${v.name}?`)) return
+    await supabase.from('vendors').delete().eq('id', v.id)
+    setVendors(prev => prev.filter(x => x.id !== v.id))
+    await logActivity('🏪', viewer, 'removed vendor: ' + v.name, 'vendors')
+    setSyncStatus('saved')
+  }
+
+  function startEdit(v) {
+    setEditId(v.id)
+    setForm({ name: v.name || '', cat: v.cat || '', status: v.status || 'pending', contact_name: v.contact_name || '', phone: v.phone || '', email: v.email || '', address: v.address || '', notes: v.notes || '' })
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   async function save() {
     if (!form.name) return
     setSyncStatus('saving')
@@ -2938,7 +2953,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
 
       {vendors.length === 0 ? <div style={S.empty}>No vendors yet. Tap "+ Add vendor" to add your first one.</div> : (
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead><tr>{['Vendor','Category','Contact',...(isParents?['Status']:[])].map(h => <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)' }}>{h}</th>)}</tr></thead>
+          <thead><tr>{['Vendor','Category','Contact',...(isParents?['Status']:[]),''].map(h => <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontWeight: 500, fontSize: 12, color: 'var(--text-secondary)', borderBottom: '0.5px solid var(--border)' }}>{h}</th>)}</tr></thead>
           <tbody>{vendors.map(v => (
             <tr key={v.id}>
               <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)' }}>{v.name}</td>
@@ -2947,6 +2962,10 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                 {v.phone ? <a href={`tel:${v.phone}`} style={{ color: '#0C447C', textDecoration: 'none' }}>{v.phone}</a> : v.notes || '—'}
               </td>
               {isParents && <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)' }}><span style={S.badge2(v.status)}>{v.status === 'paid' ? 'Paid in full' : v.status === 'deposit' ? 'Deposit paid' : v.status}</span></td>}
+              <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)', whiteSpace: 'nowrap' }}>
+                <button onClick={() => startEdit(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--rose)', fontSize: 12, fontWeight: 600, marginRight: 8 }}>Edit</button>
+                <button onClick={() => deleteVendor(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12 }}>Delete</button>
+              </td>
             </tr>
           ))}</tbody>
         </table>
