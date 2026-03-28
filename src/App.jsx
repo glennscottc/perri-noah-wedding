@@ -1764,13 +1764,56 @@ function OverviewTab({ isParents, balance, totalPaidOut, transactions, confirmed
         </div>
       </div>
 
-      {/* Old Oaks reminder — parents only */}
-      {isParents && (
-        <div style={{ background: 'var(--gold-light)', border: '1px solid #D4B483', borderRadius: 'var(--r-lg)', padding: '12px 16px', fontSize: 13, color: '#5C3D00', marginBottom: '1rem', lineHeight: 1.7 }}>
-          <div style={{ fontWeight: 700, marginBottom: 3 }}>📋 Old Oaks reminders</div>
-          Final guest count 5 days before · Outside vendors need insurance 7 days prior · Cancellation within 120 days = 50% owed
-        </div>
-      )}
+      {/* Vendor payment reminders — parents only */}
+      {isParents && (() => {
+        const today = new Date(); today.setHours(0,0,0,0)
+        const upcoming = [
+          // Old Oaks
+          { vendor: 'Old Oaks Country Club', label: 'Final guest count due', date: '2027-10-11', note: '5 days before wedding — required by contract' },
+          { vendor: 'Old Oaks Country Club', label: 'Outside vendors submit proof of insurance', date: '2027-10-02', note: '7 days before event — contact GM' },
+          // Hank Lane
+          { vendor: 'Dane Wright Band', label: '75% balance due (~$14,375)', date: '2027-06-16', note: '4 months before wedding · Cochin family' },
+          { vendor: 'Dane Wright Band', label: 'Full payment due', date: '2027-09-16', note: '30 days before wedding · Cochin family' },
+          { vendor: 'Dane Wright Band', label: 'Final music requests due', date: '2027-09-18', note: 'Submit final song list' },
+          // INSYNC
+          { vendor: 'INSYNC Studios', label: 'Deposit — $2,721.75 (25%)', date: null, note: 'Due now · Bleustein family', overdue: true },
+          { vendor: 'INSYNC Studios', label: '50% payment — $4,082.62', date: '2027-04-16', note: '6 months before wedding · Bleustein family' },
+          { vendor: 'INSYNC Studios', label: 'Balance — $4,082.63', date: '2027-10-09', note: '7 days before wedding · Bleustein family' },
+        ].filter(p => {
+          if (p.overdue) return true
+          if (!p.date) return false
+          return new Date(p.date + 'T00:00:00') >= today
+        }).sort((a, b) => {
+          if (a.overdue) return -1
+          if (b.overdue) return 1
+          return a.date.localeCompare(b.date)
+        })
+
+        if (!upcoming.length) return null
+        return (
+          <div style={{ background: 'var(--gold-light)', border: '1px solid #D4B483', borderRadius: 'var(--r-lg)', padding: '12px 16px', marginBottom: '1rem' }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#5C3D00', marginBottom: 10 }}>💳 Upcoming vendor payments</div>
+            {upcoming.map((p, i) => {
+              const daysAway = p.date ? Math.ceil((new Date(p.date + 'T00:00:00') - today) / 86400000) : null
+              const isUrgent = p.overdue || (daysAway !== null && daysAway <= 30)
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: i < upcoming.length - 1 ? '0.5px solid #D4B483' : 'none' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.overdue ? '#C4697A' : isUrgent ? '#B8956A' : '#D4B483', flexShrink: 0, marginTop: 5 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#3C2400' }}>{p.vendor} — {p.label}</div>
+                    <div style={{ fontSize: 11, color: '#7C5200', marginTop: 2 }}>
+                      {p.overdue ? '⚠️ Due now' : p.date ? fmtDate(p.date) + (daysAway !== null ? ` · ${daysAway} days away` : '') : ''} · {p.note}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            <div style={{ fontSize: 11, color: '#7C5200', marginTop: 10, paddingTop: 8, borderTop: '0.5px solid #D4B483' }}>
+              📋 Old Oaks: Final guest count 5 days before · Outside vendors need insurance 7 days prior
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Quick actions */}
       <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 10 }}>Jump to</div>
