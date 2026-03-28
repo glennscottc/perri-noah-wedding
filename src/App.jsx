@@ -2680,7 +2680,20 @@ function NotesTab({ viewer, notes, setNotes, reminders, setReminders, logActivit
 }
 
 // ── CONTACT CARD ──────────────────────────────────────
-function ContactCard({ name, cat, contactName, phone, email, address, notes, status, isParents }) {
+function ContactCard({ vendor, name, cat, contactName, phone, email, address, notes, status, isParents, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ contact_name: contactName || '', phone: phone || '', email: email || '', address: address || '', notes: notes || '' })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function handleSave() {
+    if (!onSave || !vendor) return
+    setSaving(true)
+    await onSave(vendor.id, form)
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => { setSaved(false); setEditing(false) }, 1200)
+  }
   const catColors = {
     'Venue': ['#E6F1FB','#0C447C'], 'Florals': ['#EAF3DE','#27500A'],
     'Photography': ['#EEEDFE','#3C3489'], 'Music': ['#FAEEDA','#633806'],
@@ -2693,70 +2706,81 @@ function ContactCard({ name, cat, contactName, phone, email, address, notes, sta
     <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: '1rem 1.25rem', marginBottom: 12, border: '1px solid var(--border)', boxShadow: 'var(--shadow-xs)', transition: 'box-shadow 0.2s' }}>
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-primary)' }}>{name}</div>
-          {contactName && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{contactName}</div>}
+          {editing
+            ? <input value={form.contact_name} onChange={e => setForm(p=>({...p,contact_name:e.target.value}))} placeholder="Contact name" style={{ fontSize: 12, marginTop: 4, width: '100%' }} />
+            : (form.contact_name || contactName) && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{form.contact_name || contactName}</div>
+          }
         </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
           {cat && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: cbg, color: ctc, fontWeight: 500 }}>{cat}</span>}
           {isParents && status && <span style={S.badge2(status)}>{status === 'paid' ? 'Paid in full' : status === 'deposit' ? 'Deposit paid' : status}</span>}
+          {onSave && <button onClick={() => { setEditing(!editing); setForm({ contact_name: contactName||'', phone: phone||'', email: email||'', address: address||'', notes: notes||'' }) }} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 8, border: '1px solid var(--border-strong)', background: editing ? 'var(--rose-light)' : 'white', color: editing ? 'var(--rose-dark)' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 500 }}>{editing ? 'Cancel' : '✏️ Edit'}</button>}
         </div>
       </div>
 
       {/* Contact details */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {phone && (
-          <a href={`tel:${phone.replace(/\D/g,'')}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#EEEDFE'}
-            onMouseLeave={e => e.currentTarget.style.background = 'white'}
-          >
-            <span style={{ fontSize: 18, flexShrink: 0 }}>📞</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 1 }}>Phone</div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: '#0C447C' }}>{phone}</div>
+        {editing ? (
+          <>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>📞</span>
+              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Phone</div><input value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="e.g. 914-555-1234" type="tel" style={{ fontSize:14, width:'100%' }} /></div>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Tap to call</span>
-          </a>
-        )}
-
-        {email && (
-          <a href={`mailto:${email}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#EEEDFE'}
-            onMouseLeave={e => e.currentTarget.style.background = 'white'}
-          >
-            <span style={{ fontSize: 18, flexShrink: 0 }}>✉️</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 1 }}>Email</div>
-              <div style={{ fontSize: 14, fontWeight: 500, color: '#0C447C' }}>{email}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>✉️</span>
+              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Email</div><input value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="e.g. vendor@example.com" type="email" style={{ fontSize:14, width:'100%' }} /></div>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Tap to email</span>
-          </a>
-        )}
-
-        {address && (
-          <a href={`https://maps.google.com/?q=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', padding: '10px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = '#EEEDFE'}
-            onMouseLeave={e => e.currentTarget.style.background = 'white'}
-          >
-            <span style={{ fontSize: 18, flexShrink: 0 }}>📍</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 1 }}>Address</div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{address}</div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>📍</span>
+              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Address</div><input value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, New York, NY" style={{ fontSize:13, width:'100%' }} /></div>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Maps ↗</span>
-          </a>
-        )}
-
-        {notes && (
-          <div style={{ padding: '8px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            📌 {notes}
-          </div>
-        )}
-
-        {!phone && !email && !address && (
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', padding: '4px 0' }}>
-            No contact details yet — edit this vendor to add phone, email and address.
-          </div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'#FEF9F5', borderRadius:10, border:'1px solid var(--rose-mid)' }}>
+              <span style={{ fontSize:18, flexShrink:0 }}>📌</span>
+              <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:4 }}>Notes</div><input value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. Ask about parking" style={{ fontSize:13, width:'100%' }} /></div>
+            </div>
+            <button onClick={handleSave} disabled={saving||saved} style={{ width:'100%', padding:'11px', borderRadius:10, border:'none', background: saved ? '#1D9E75' : 'var(--rose)', color:'white', fontSize:14, fontWeight:700, cursor:'pointer', marginTop:4, transition:'background 0.2s' }}>
+              {saved ? '✓ Saved!' : saving ? 'Saving…' : 'Save changes'}
+            </button>
+          </>
+        ) : (
+          <>
+            {(form.phone || phone) && (
+              <a href={`tel:${(form.phone||phone).replace(/\D/g,'')}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', padding:'10px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', transition:'background 0.15s' }}
+                onMouseEnter={e=>e.currentTarget.style.background='#EEEDFE'} onMouseLeave={e=>e.currentTarget.style.background='white'}>
+                <span style={{ fontSize:18, flexShrink:0 }}>📞</span>
+                <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:1 }}>Phone</div><div style={{ fontSize:14, fontWeight:500, color:'#0C447C' }}>{form.phone||phone}</div></div>
+                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Tap to call</span>
+              </a>
+            )}
+            {(form.email || email) && (
+              <a href={`mailto:${form.email||email}`} style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', padding:'10px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', transition:'background 0.15s' }}
+                onMouseEnter={e=>e.currentTarget.style.background='#EEEDFE'} onMouseLeave={e=>e.currentTarget.style.background='white'}>
+                <span style={{ fontSize:18, flexShrink:0 }}>✉️</span>
+                <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:1 }}>Email</div><div style={{ fontSize:14, fontWeight:500, color:'#0C447C' }}>{form.email||email}</div></div>
+                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Tap to email</span>
+              </a>
+            )}
+            {(form.address || address) && (
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(form.address||address)}`} target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', padding:'10px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', transition:'background 0.15s' }}
+                onMouseEnter={e=>e.currentTarget.style.background='#EEEDFE'} onMouseLeave={e=>e.currentTarget.style.background='white'}>
+                <span style={{ fontSize:18, flexShrink:0 }}>📍</span>
+                <div style={{ flex:1 }}><div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:1 }}>Address</div><div style={{ fontSize:13, fontWeight:500, color:'var(--text-primary)' }}>{form.address||address}</div></div>
+                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Maps ↗</span>
+              </a>
+            )}
+            {(form.notes || notes) && (
+              <div style={{ padding:'8px 14px', background:'white', borderRadius:10, border:'0.5px solid var(--border)', fontSize:12, color:'var(--text-secondary)', lineHeight:1.5 }}>
+                📌 {form.notes||notes}
+              </div>
+            )}
+            {!phone && !email && !address && !form.phone && !form.email && !form.address && (
+              <div style={{ fontSize:12, color:'var(--text-secondary)', fontStyle:'italic', padding:'4px 0' }}>
+                No contact details yet — tap ✏️ Edit to add phone, email and address.
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
