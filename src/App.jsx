@@ -353,7 +353,6 @@ export default function App() {
   const [readTimestamps, setReadTimestamps] = useState(() => {
     try { return JSON.parse(localStorage.getItem('pn-read-ts') || '{}') } catch { return {} }
   })
-  const [unreadCounts, setUnreadCounts] = useState({})
 
   const isParents = PARENTS.includes(viewer)
 
@@ -573,12 +572,7 @@ export default function App() {
   }
 
   function handleSignOut() {
-    // Clear localStorage so the app doesn't auto-login next time
-    localStorage.removeItem('pn-viewer')
-    localStorage.removeItem('pn-read-ts')
-    localStorage.removeItem('pn-session-valid')
     setViewerState(null)
-    setLoadError(false)
     setNotes([])
     setReminders([])
     setGifts([])
@@ -649,13 +643,7 @@ export default function App() {
           </button>
         )}
         <button
-          onClick={() => {
-            // Force clear everything including localStorage then reload
-            localStorage.removeItem('pn-viewer')
-            localStorage.removeItem('pn-read-ts')
-            localStorage.removeItem('pn-session-valid')
-            window.location.reload()
-          }}
+          onClick={handleSignOut}
           style={{ marginTop: 14, padding: '8px 20px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', background: 'white', color: '#78716C', fontSize: 13, cursor: 'pointer' }}
         >
           Sign out
@@ -1666,7 +1654,7 @@ function SearchOverlay({ isParents, viewer, vendors, guests, tasks, dates, media
           {query && (
             <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 18, padding: 0 }}>×</button>
           )}
-          <button onClick={onClose} style={{ background: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, padding: '4px 8px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, padding: '4px 8px', borderRadius: 8, border: '0.5px solid var(--border)' }}>
             Cancel
           </button>
         </div>
@@ -2756,14 +2744,8 @@ function ContactCard({ name, cat, contactName, phone, email, address, notes, sta
         )}
 
         {notes && (
-          <div style={{ padding: '12px 14px', background: 'var(--gold-light)', borderRadius: 10, border: '1px solid #D4B483' }}>
-            <div style={{ fontSize: 11, color: 'var(--gold-dark)', fontWeight: 700, marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>📋 Notes & Contract</div>
-            {notes.split(/\s+/).map((word, i) => {
-              if (word.startsWith('http')) {
-                return <span key={i}><a href={word} target="_blank" rel="noreferrer" style={{ color: '#0C447C', fontWeight: 600, fontSize: 13, wordBreak: 'break-all' }}>📄 View contract ↗</a>{' '}</span>
-              }
-              return <span key={i} style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.7 }}>{word} </span>
-            })}
+          <div style={{ padding: '8px 14px', background: 'white', borderRadius: 10, border: '0.5px solid var(--border)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            📌 {notes}
           </div>
         )}
 
@@ -2781,40 +2763,16 @@ function ContactCard({ name, cat, contactName, phone, email, address, notes, sta
 function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSyncStatus }) {
   const [viewMode, setViewMode] = useState('list') // 'list' | 'contacts'
   const [showForm, setShowForm] = useState(false)
-  const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' })
 
   async function save() {
     if (!form.name) return
     setSyncStatus('saving')
-    if (editId) {
-      // Update existing
-      const { data } = await supabase.from('vendors').update(form).eq('id', editId).select()
-      if (data) { setVendors(prev => prev.map(v => v.id === editId ? data[0] : v)); setShowForm(false); setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
-      await logActivity('🏪', viewer, 'updated vendor: ' + form.name, 'vendors')
-    } else {
-      // Insert new
-      const item = { id: uid(), ...form, created_by: viewer }
-      const { data } = await supabase.from('vendors').insert([item]).select()
-      if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
-      await logActivity('🏪', viewer, 'added vendor: ' + form.name, 'vendors')
-    }
+    const item = { id: uid(), ...form, created_by: viewer }
+    const { data } = await supabase.from('vendors').insert([item]).select()
+    if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
+    await logActivity('🏪', viewer, 'added vendor: ' + form.name, 'vendors')
     setSyncStatus('saved')
-  }
-
-  async function deleteVendor(v) {
-    if (!window.confirm(`Delete ${v.name}?`)) return
-    await supabase.from('vendors').delete().eq('id', v.id)
-    setVendors(prev => prev.filter(x => x.id !== v.id))
-    await logActivity('🏪', viewer, 'removed vendor: ' + v.name, 'vendors')
-    setSyncStatus('saved')
-  }
-
-  function startEdit(v) {
-    setEditId(v.id)
-    setForm({ name: v.name || '', cat: v.cat || '', status: v.status || 'pending', contact_name: v.contact_name || '', phone: v.phone || '', email: v.email || '', address: v.address || '', notes: v.notes || '' })
-    setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const all = [{ id: 'oo', status: 'deposit' }, ...vendors]
@@ -2854,6 +2812,56 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             </div>
           </div>
         ))}
+      </div>
+
+
+      {/* ── HANK LANE / DANE WRIGHT BAND CARD ── */}
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', marginBottom: '1.5rem', border: '0.5px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500 }}>Dane Wright Band <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 400 }}>· Hank Lane Music</span></div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Contract #318090</div>
+          </div>
+          {isParents && <span style={S.badge2('deposit')}>Deposit paid</span>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, marginBottom: 12 }}>
+          {[['Category','Bands & Music'],['Directing','Dane Wright'],['Contact','Lori Roth'],['Phone','516-626-9400'],['Email','joanna@hanklane.com']].map(([l,v]) => (
+            <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
+          ))}
+          <div style={{ gridColumn: '1/-1' }}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>Address</div><div style={{ fontWeight: 500 }}>200 Frank Road, Hicksville, NY 11801</div></div>
+        </div>
+        {isParents && (
+          <>
+            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contract & Pricing</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
+                {[['Total contract','$32,500'],['Overtime rate','$3,850 / half hour'],['Band size','10 musicians'],['Reception','4 hours'],['Ceremony & cocktails','2 hrs keyboard']].map(([l,v]) => (
+                  <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Schedule</div>
+              {[
+                { label: 'Deposit — $10,000', date: 'Mar 27, 2026', note: 'Non-refundable · Paid by Cochin family', done: true },
+                { label: '75% balance due (~$14,375)', date: 'Jun 16, 2027', note: 'Due 4 months before wedding', done: false },
+                { label: 'Full payment due', date: 'Sep 16, 2027', note: 'Due 30 days before wedding', done: false },
+                { label: 'Final music requests due', date: 'Sep 18, 2027', note: 'Submit final song list by this date', done: false },
+              ].map((p, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: p.done ? '#1D9E75' : 'var(--border-strong)', color: p.done ? 'white' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 2 }}>{p.done ? '✓' : ''}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: p.done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: p.done ? 'line-through' : 'none' }}>{p.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{p.date} · {p.note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <a href="https://drive.google.com/file/d/1HxM-4-MMJeHc9b5WgM7Pf3xVlokSrKdq/view?usp=sharing" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'var(--gold-light)', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+              📄 View signed contract ↗
+            </a>
+          </>
+        )}
       </div>
 
       {/* View toggle — List or Contact Sheet */}
@@ -2905,10 +2913,10 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
       {/* ── LIST VIEW ── */}
       {viewMode === 'list' && (<>
 
-      <button style={S.addBtn} onClick={() => { setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }); setShowForm(!showForm) }}>+ Add vendor</button>
+      <button style={S.addBtn} onClick={() => setShowForm(!showForm)}>+ Add vendor</button>
       {showForm && (
         <div style={S.formBox}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{editId ? 'Edit vendor' : 'Vendor details'}</div>
+          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Vendor details</div>
           <div style={S.formGrid}>
             <FormField label="Vendor name"><input value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Rosewood Florist" /></FormField>
             <FormField label="Category"><input value={form.cat} onChange={e => setForm(p=>({...p,cat:e.target.value}))} placeholder="e.g. Florals" /></FormField>
@@ -2921,10 +2929,10 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
               </select>
             </FormField>
             <FormField label="Address" full><input value={form.address} onChange={e => setForm(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, White Plains, NY" /></FormField>
-            <FormField label="Notes" full><textarea value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="Key terms, payment dates, contract link..." rows={4} style={{ resize: 'vertical' }} /></FormField>
+            <FormField label="Notes" full><input value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. Ask about Sunday availability" /></FormField>
           </div>
-          <button style={S.saveBtn} onClick={save}>{editId ? 'Update vendor ✓' : 'Save vendor ✓'}</button>
-          <button style={S.cancelBtn} onClick={() => { setShowForm(false); setEditId(null) }}>Cancel</button>
+          <button style={S.saveBtn} onClick={save}>Save vendor</button>
+          <button style={S.cancelBtn} onClick={() => setShowForm(false)}>Cancel</button>
         </div>
       )}
 
@@ -2939,10 +2947,6 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                 {v.phone ? <a href={`tel:${v.phone}`} style={{ color: '#0C447C', textDecoration: 'none' }}>{v.phone}</a> : v.notes || '—'}
               </td>
               {isParents && <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)' }}><span style={S.badge2(v.status)}>{v.status === 'paid' ? 'Paid in full' : v.status === 'deposit' ? 'Deposit paid' : v.status}</span></td>}
-              <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)', whiteSpace: 'nowrap' }}>
-                <button onClick={() => startEdit(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--rose)', fontSize: 12, fontWeight: 600, marginRight: 8 }}>Edit</button>
-                <button onClick={() => deleteVendor(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12 }}>Delete</button>
-              </td>
             </tr>
           ))}</tbody>
         </table>
