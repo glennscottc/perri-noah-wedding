@@ -353,8 +353,8 @@ export default function App() {
   const [readTimestamps, setReadTimestamps] = useState(() => {
     try { return JSON.parse(localStorage.getItem('pn-read-ts') || '{}') } catch { return {} }
   })
+  const [unreadCounts, setUnreadCounts] = useState({})
 
-     const [unreadCounts, setUnreadCounts] = useState({})
   const isParents = PARENTS.includes(viewer)
 
   // Data is loaded by handleLogin() after PIN verification
@@ -2775,16 +2775,40 @@ function ContactCard({ name, cat, contactName, phone, email, address, notes, sta
 function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSyncStatus }) {
   const [viewMode, setViewMode] = useState('list') // 'list' | 'contacts'
   const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' })
 
   async function save() {
     if (!form.name) return
     setSyncStatus('saving')
-    const item = { id: uid(), ...form, created_by: viewer }
-    const { data } = await supabase.from('vendors').insert([item]).select()
-    if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
-    await logActivity('🏪', viewer, 'added vendor: ' + form.name, 'vendors')
+    if (editId) {
+      // Update existing
+      const { data } = await supabase.from('vendors').update(form).eq('id', editId).select()
+      if (data) { setVendors(prev => prev.map(v => v.id === editId ? data[0] : v)); setShowForm(false); setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
+      await logActivity('🏪', viewer, 'updated vendor: ' + form.name, 'vendors')
+    } else {
+      // Insert new
+      const item = { id: uid(), ...form, created_by: viewer }
+      const { data } = await supabase.from('vendors').insert([item]).select()
+      if (data) { setVendors(prev => [...prev, ...data]); setShowForm(false); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }) }
+      await logActivity('🏪', viewer, 'added vendor: ' + form.name, 'vendors')
+    }
     setSyncStatus('saved')
+  }
+
+  async function deleteVendor(v) {
+    if (!window.confirm(`Delete ${v.name}?`)) return
+    await supabase.from('vendors').delete().eq('id', v.id)
+    setVendors(prev => prev.filter(x => x.id !== v.id))
+    await logActivity('🏪', viewer, 'removed vendor: ' + v.name, 'vendors')
+    setSyncStatus('saved')
+  }
+
+  function startEdit(v) {
+    setEditId(v.id)
+    setForm({ name: v.name || '', cat: v.cat || '', status: v.status || 'pending', contact_name: v.contact_name || '', phone: v.phone || '', email: v.email || '', address: v.address || '', notes: v.notes || '' })
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const all = [{ id: 'oo', status: 'deposit' }, ...vendors]
@@ -2875,10 +2899,10 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
       {/* ── LIST VIEW ── */}
       {viewMode === 'list' && (<>
 
-      <button style={S.addBtn} onClick={() => setShowForm(!showForm)}>+ Add vendor</button>
+      <button style={S.addBtn} onClick={() => { setEditId(null); setForm({ name: '', cat: '', status: 'pending', contact_name: '', phone: '', email: '', address: '', notes: '' }); setShowForm(!showForm) }}>+ Add vendor</button>
       {showForm && (
         <div style={S.formBox}>
-          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Vendor details</div>
+          <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>{editId ? 'Edit vendor' : 'Vendor details'}</div>
           <div style={S.formGrid}>
             <FormField label="Vendor name"><input value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} placeholder="e.g. Rosewood Florist" /></FormField>
             <FormField label="Category"><input value={form.cat} onChange={e => setForm(p=>({...p,cat:e.target.value}))} placeholder="e.g. Florals" /></FormField>
@@ -2893,8 +2917,8 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             <FormField label="Address" full><input value={form.address} onChange={e => setForm(p=>({...p,address:e.target.value}))} placeholder="e.g. 123 Main St, White Plains, NY" /></FormField>
             <FormField label="Notes" full><input value={form.notes} onChange={e => setForm(p=>({...p,notes:e.target.value}))} placeholder="e.g. Ask about Sunday availability" /></FormField>
           </div>
-          <button style={S.saveBtn} onClick={save}>Save vendor</button>
-          <button style={S.cancelBtn} onClick={() => setShowForm(false)}>Cancel</button>
+          <button style={S.saveBtn} onClick={save}>{editId ? 'Update vendor ✓' : 'Save vendor ✓'}</button>
+          <button style={S.cancelBtn} onClick={() => { setShowForm(false); setEditId(null) }}>Cancel</button>
         </div>
       )}
 
@@ -2909,6 +2933,10 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                 {v.phone ? <a href={`tel:${v.phone}`} style={{ color: '#0C447C', textDecoration: 'none' }}>{v.phone}</a> : v.notes || '—'}
               </td>
               {isParents && <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)' }}><span style={S.badge2(v.status)}>{v.status === 'paid' ? 'Paid in full' : v.status === 'deposit' ? 'Deposit paid' : v.status}</span></td>}
+              <td style={{ padding: 10, borderBottom: '0.5px solid var(--border)', whiteSpace: 'nowrap' }}>
+                <button onClick={() => startEdit(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--rose)', fontSize: 12, fontWeight: 600, marginRight: 8 }}>Edit</button>
+                <button onClick={() => deleteVendor(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: 12 }}>Delete</button>
+              </td>
             </tr>
           ))}</tbody>
         </table>
