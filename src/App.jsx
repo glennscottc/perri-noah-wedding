@@ -403,7 +403,10 @@ export default function App() {
         setTransactions([])
       }
 
-      if (vRes.data) setVendors(vRes.data)
+      if (vRes.data) {
+        const withCore = await ensureCoreVendors(vRes.data, db)
+        setVendors(withCore)
+      }
       if (gRes.data) setGuests(gRes.data)
       if (dRes.data) setDates(dRes.data)
       if (mRes.data) setMediaItems(mRes.data)
@@ -2946,26 +2949,21 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
       {viewMode === 'contacts' && (
         <div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Quick-dial every vendor. Tap a phone number to call, email to open mail.
+            Quick-dial every vendor. Tap ✏️ Edit on any card to update their details.
           </div>
-
-          {/* Old Oaks — always first */}
-          <ContactCard
-            name="Old Oaks Country Club"
-            cat="Venue"
-            contactName="Iwona Sterk, GM"
-            phone="914-683-6000"
-            email="iwona.sterk@oldoaks.com"
-            address="3100 Purchase St., Purchase, NY 10577"
-            status="deposit"
-            isParents={isParents}
-          />
-
           {vendors.length === 0
-            ? <div style={S.empty}>No vendors added yet. Tap "+ Add vendor" above to start building your contact list.</div>
-            : vendors.map(v => (
+            ? <div style={S.empty}>No vendors yet.</div>
+            : [...vendors].sort((a,b) => {
+                const order = ['Old Oaks Country Club', 'Dane Wright Band (Hank Lane)', 'INSYNC Studios']
+                const ai = order.indexOf(a.name), bi = order.indexOf(b.name)
+                if (ai !== -1 && bi !== -1) return ai - bi
+                if (ai !== -1) return -1
+                if (bi !== -1) return 1
+                return (a.name||'').localeCompare(b.name||'')
+              }).map(v => (
                 <ContactCard
                   key={v.id}
+                  vendor={v}
                   name={v.name}
                   cat={v.cat}
                   contactName={v.contact_name}
@@ -2975,6 +2973,11 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                   notes={v.notes}
                   status={v.status}
                   isParents={isParents}
+                  onSave={async (id, form) => {
+                    await supabase.from('vendors').update(form).eq('id', id)
+                    setVendors(prev => prev.map(x => x.id === id ? { ...x, ...form } : x))
+                    setSyncStatus('saved')
+                  }}
                 />
               ))
           }
