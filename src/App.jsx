@@ -2879,6 +2879,53 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
         )}
       </div>
 
+      {/* ── INSYNC STUDIOS CARD ── */}
+      <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', marginBottom: '1.5rem', border: '0.5px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 500 }}>INSYNC Studios</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>The INSYNC Signature Collection (W)</div>
+          </div>
+          {isParents && <span style={S.badge2('pending')}>Deposit pending</span>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, marginBottom: 12 }}>
+          {[['Category','Photography'],['Package','Signature Collection (W)']].map(([l,v]) => (
+            <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
+          ))}
+        </div>
+        {isParents && (
+          <>
+            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contract & Pricing</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
+                {[['Total contract','$10,887.00'],['Payment','25% / 50% / Balance']].map(([l,v]) => (
+                  <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
+                ))}
+              </div>
+            </div>
+            <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Schedule</div>
+              {[
+                { label: 'Deposit — $2,721.75 (25%)', date: 'Due now', note: 'Paid by Bleustein family', done: false },
+                { label: '50% payment — $4,082.62', date: 'Apr 16, 2027', note: 'Due 6 months before wedding', done: false },
+                { label: 'Balance — $4,082.63', date: 'Oct 9, 2027', note: 'Due 7 days before wedding', done: false },
+              ].map((p, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: i < 2 ? '0.5px solid var(--border)' : 'none' }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: p.done ? '#1D9E75' : 'var(--border-strong)', color: p.done ? 'white' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 2 }}>{p.done ? '✓' : ''}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: p.done ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: p.done ? 'line-through' : 'none' }}>{p.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{p.date} · {p.note}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <a href="https://insyncnyphotography.vsco.page/quote/customize/a3dd0d4d22c1af54bd49c354/3ef09ec6c44a56050a06515b?QuoteID=01kkfvggk5qxejr10rr5z5jfba" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'var(--gold-light)', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+              📄 View quote & contract ↗
+            </a>
+          </>
+        )}
+      </div>
+
       {/* View toggle — List or Contact Sheet */}
       <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: 20, padding: 3, gap: 2, marginBottom: '1.25rem', width: 'fit-content' }}>
         {[['list','📋 Vendors'],['contacts','📞 Contact Sheet']].map(([v, label]) => (
