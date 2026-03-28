@@ -2778,8 +2778,9 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
   function startEdit(v) {
     setEditId(v.id)
     setForm({ name: v.name || '', cat: v.cat || '', status: v.status || 'pending', contact_name: v.contact_name || '', phone: v.phone || '', email: v.email || '', address: v.address || '', notes: v.notes || '' })
+    setViewMode('list')
     setShowForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
   }
 
   async function save() {
