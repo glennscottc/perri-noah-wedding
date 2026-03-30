@@ -2893,7 +2893,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contract & Pricing</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
-                {[['Total contract','$32,500'],['Overtime rate','$3,850 / half hour'],['Band size','10 musicians'],['Reception','4 hours'],['Ceremony & cocktails','2 hrs keyboard']].map(([l,v]) => (
+                {[['Total contract','$32,500'],['Overtime rate','$3,850 / half hour'],['Band size','10 musicians'],['Reception','4 hours'],['Ceremony & cocktails','2 musicians · 2 hours']].map(([l,v]) => (
                   <div key={l}><div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{l}</div><div style={{ fontWeight: 500 }}>{v}</div></div>
                 ))}
               </div>
@@ -2904,7 +2904,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                 { label: 'Deposit — $10,000', date: 'Mar 27, 2026', note: 'Non-refundable · Cochin family', done: false },
                 { label: '75% balance due (~$14,375)', date: 'Jun 16, 2027', note: 'Due 4 months before wedding', done: false },
                 { label: 'Full payment due', date: 'Sep 16, 2027', note: 'Due 30 days before wedding', done: false },
-                { label: 'Final music requests due', date: 'Sep 18, 2027', note: 'Submit final song list by this date', done: false },
+                { label: 'Final music requests due', date: 'Sep 18, 2027', note: 'Due 4 weeks before wedding — submit by phone or internet', done: false },
               ].map((p, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderBottom: i < 3 ? '0.5px solid var(--border)' : 'none' }}>
                   <div style={{ width: 18, height: 18, borderRadius: '50%', background: p.done ? '#1D9E75' : 'var(--border-strong)', color: p.done ? 'white' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, flexShrink: 0, marginTop: 2 }}>{p.done ? '✓' : ''}</div>
@@ -2915,9 +2915,20 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
                 </div>
               ))}
             </div>
-            <a href="https://drive.google.com/file/d/1HxM-4-MMJeHc9b5WgM7Pf3xVlokSrKdq/view?usp=sharing" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'var(--gold-light)', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
-              📄 View signed contract ↗
-            </a>
+            <div style={{ background: '#EBF0FA', border: '1px solid #B8C8E8', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#1E3A7E', lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>📋 Contract addendums</div>
+              <div>• Date change policy — all monies credited to new date</div>
+              <div>• Musician replacement — equal caliber replacement required if a musician cannot perform</div>
+              <div>• Final music requests due 4 weeks before (not 2 weeks)</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <a href="https://drive.google.com/file/d/16CHDs8XoZ2Pk6REBmBYQtfUOpmBwsxIe/view?usp=sharing" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'var(--gold-light)', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                📄 View updated contract (Mar 30, 2026) ↗
+              </a>
+              <a href="https://drive.google.com/file/d/1cL12LGXpVbMGBMzD_8yE7v_qyLD36Ade/view?usp=sharing" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: 'white', border: '1px solid #D4B483', color: '#5C3D00', fontSize: 12, fontWeight: 500, textDecoration: 'none' }}>
+                📄 View original contract (Mar 27, 2026) ↗
+              </a>
+            </div>
           </>
         )}
       </div>
