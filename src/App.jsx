@@ -1777,7 +1777,6 @@ function OverviewTab({ isParents, balance, totalPaidOut, transactions, confirmed
           { vendor: 'Dane Wright Band', label: 'Full payment due', date: '2027-09-16', note: '30 days before wedding · Cochin family' },
           { vendor: 'Dane Wright Band', label: 'Final music requests due', date: '2027-09-18', note: 'Submit final song list' },
           // INSYNC
-          { vendor: 'INSYNC Studios', label: 'Deposit — $2,721.75 (25%)', date: null, note: 'Due now · Bleustein family', overdue: true },
           { vendor: 'INSYNC Studios', label: '50% payment — $4,082.62', date: '2027-04-16', note: '6 months before wedding · Bleustein family' },
           { vendor: 'INSYNC Studios', label: 'Balance — $4,082.63', date: '2027-10-09', note: '7 days before wedding · Bleustein family' },
         ].filter(p => {
@@ -2940,7 +2939,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             <div style={{ fontSize: 15, fontWeight: 500 }}>INSYNC Studios</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>The INSYNC Signature Collection (W)</div>
           </div>
-          {isParents && <span style={S.badge2('pending')}>Deposit pending</span>}
+          {isParents && <span style={S.badge2('deposit')}>Deposit paid</span>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13, marginBottom: 12 }}>
           {[['Category','Photography'],['Package','Signature Collection (W)']].map(([l,v]) => (
@@ -2960,7 +2959,7 @@ function VendorsTab({ isParents, vendors, setVendors, viewer, logActivity, setSy
             <div style={{ borderTop: '0.5px solid var(--border)', paddingTop: 12, marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payment Schedule</div>
               {[
-                { label: 'Deposit — $2,721.75 (25%)', date: 'Due now', note: 'Paid by Bleustein family', done: false },
+                { label: 'Deposit — $2,721.75 (25%)', date: 'Mar 31, 2026', note: 'Paid by Bleustein family ✓', done: true },
                 { label: '50% payment — $4,082.62', date: 'Apr 16, 2027', note: 'Due 6 months before wedding', done: false },
                 { label: 'Balance — $4,082.63', date: 'Oct 9, 2027', note: 'Due 7 days before wedding', done: false },
               ].map((p, i) => (
